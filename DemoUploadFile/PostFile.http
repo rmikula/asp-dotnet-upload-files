@@ -1,0 +1,21 @@
+
+### Post request with file uploading
+POST http://localhost:5053/api/FileUploader
+Content-Type: multipart/form-data; boundary=someDelimiterString
+
+--someDelimiterString
+Content-Disposition: form-data; name="firstFile"; filename="input.txt"
+
+// The 'input.txt' file will be uploaded
+< ./input-second.txt
+--someDelimiterString
+Content-Disposition: form-data; name="secondFile"; filename="input-second.txt"
+
+// A temporary 'input-second.txt' file with the 'Text' content will be created and uploaded
+Text, ktery bude vlozen do temporary souboru a pak odeslan na server.
+--someDelimiterString 
+Content-Disposition: form-data; name="third";
+
+// The 'input.txt' file contents will be sent as plain text.
+< ./input.txt
+--someDelimiterString--
