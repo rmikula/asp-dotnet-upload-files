@@ -19,3 +19,15 @@ Content-Disposition: form-data; name="third";
 // The 'input.txt' file contents will be sent as plain text.
 < ./input.txt
 --someDelimiterString--
+
+
+### Send file to Azure blob
+POST http://localhost:5053/api/FileUploader/toBlob
+Content-Type: multipart/form-data; boundary=boundary
+
+--boundary
+Content-Disposition: form-data; name="firstFile"; filename="Vyúčtování.pdf"
+Content-Type: application/pdf
+
+< ./Vyúčtování.pdf
+--boundary-- 
