@@ -29,6 +29,18 @@ namespace DemoUploadFile.Controllers
             _azureClientFactory = azureClientFactory;
         }
 
+        [HttpGet]
+        [Route("/api/health")]
+        public IActionResult Get()
+        {
+            return Ok(new
+            {
+                App = "DemoUploadFile",
+                Version = "1.0.0",
+            });
+        }
+        
+
         /// <summary>
         /// I can use firstFile or secondFile directly or iterate through Request.Form.Files collection
         /// </summary>
@@ -40,22 +52,23 @@ namespace DemoUploadFile.Controllers
         {
             foreach (var formFile in Request.Form.Files)
             {
-                Console.WriteLine(
-                    $"Field name: {formFile.Name}, FileName: {formFile.FileName}, Size: {formFile.Length} contentType: {formFile.ContentType} ");
-
+                _logger.LogInformation("Field name: {Name}, FileName: {FileName}, Size: {Length} contentType: {ContentType}", formFile.Name, formFile.FileName, formFile.Length, formFile.ContentType);
                 await using var stream = new FileStream($"uploads/{formFile.FileName}", FileMode.Create);
-
                 await formFile.CopyToAsync(stream);
             }
         }
 
         [HttpPost("toBlob")]
-        public async Task PostFileToAzureBlob([FromForm] IFormFile firstFile)
+        [RequestSizeLimit(MaxFileSize)]
+        [RequestFormLimits(MultipartBodyLengthLimit = MaxFileSize)]
+        public async Task<IActionResult> PostFileToAzureBlob([FromForm] IFormFile firstFile, CancellationToken token)
         {
+            _logger.LogInformation("Field name: {Name}, FileName: {FileName}, Size: {Length} contentType: {ContentType}", firstFile.Name, firstFile.FileName, firstFile.Length, firstFile.ContentType);
+            
             var containerClient = _blobServiceClient.GetBlobContainerClient("files");
 
             // Check if container exists
-            var response = await containerClient.CreateIfNotExistsAsync();
+            var response = await containerClient.CreateIfNotExistsAsync(cancellationToken: token);
 
             var blobClient = containerClient.GetBlobClient(firstFile.FileName);
 
@@ -65,18 +78,18 @@ namespace DemoUploadFile.Controllers
                 ContentType = firstFile.ContentType,
             };
 
-            var uploadAsync = await blobClient.UploadAsync(content: firstFile.OpenReadStream(), headers);
+            var uploadAsync = await blobClient.UploadAsync(content: firstFile.OpenReadStream(), httpHeaders: headers, cancellationToken: token);
 
             // Response<BlobContentInfo>? uploadAsync = await blobClient.UploadAsync(content: firstFile.OpenReadStream(), overwrite: true);
             // await blobClient.SetHttpHeadersAsync(new BlobHttpHeaders { ContentType = firstFile.ContentType });
 
             // await containerClient.UploadBlobAsync(firstFile.FileName, firstFile.OpenReadStream());
 
-            Accepted();
+            return NoContent();
         }
 
         [HttpPost("toBlob2")]
-        public async Task PostFileToAzureBlob2([FromForm] IFormFile firstFiles)
+        public async Task<IActionResult> PostFileToAzureBlob2([FromForm] IFormFile firstFiles)
         {
             var client = _azureClientFactory.CreateClient("RoMikVersion");
 
@@ -84,8 +97,10 @@ namespace DemoUploadFile.Controllers
             
             foreach (var blobItem in containerClient.GetBlobs())
             {
-                Console.WriteLine($"BlobName: {blobItem.Name} contentType: {blobItem.Properties.ContentType}");
+                _logger.LogInformation("BlobName: {Name} contentType: {ContentType}", blobItem.Name, blobItem.Properties.ContentType);
             }
+
+            return NoContent();
         }
     }
 }

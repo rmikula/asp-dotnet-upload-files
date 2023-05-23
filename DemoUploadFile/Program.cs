@@ -3,6 +3,8 @@ using Microsoft.Extensions.Azure;
 
 var builder = WebApplication.CreateBuilder(args);
 
+builder.Services.AddApplicationInsightsTelemetry();
+
 // Add services to the container.
 builder.Services.AddAzureClients(clientBuilder =>
 {
@@ -18,7 +20,7 @@ builder.Services.AddAzureClients(clientBuilder =>
 
 
     clientBuilder.AddBlobServiceClient(serviceUri: new Uri("https://romikstorage.blob.core.windows.net/"));
-    clientBuilder.UseCredential(new DefaultAzureCredential());
+    clientBuilder.UseCredential(credential);
 });
 
 
